@@ -10,22 +10,23 @@ class SeeingIsBelieving
 
     def initialize
       @min_line_number = @max_line_number = 1
+      @results = Hash.new
     end
 
     def record_result(line_number, value)
       contains_line_number line_number
-      results[line_number] << value.inspect
+      results(line_number) << value.inspect
       value
     end
 
     def record_exception(line_number, exception)
       self.exception = exception
       contains_line_number line_number
-      results[line_number].exception = exception
+      results(line_number).exception = exception
     end
 
     def [](line_number)
-      results[line_number]
+      results(line_number)
     end
 
     # probably not really useful, just exists to satisfy the tests, which specified too simple of an interface
@@ -42,10 +43,8 @@ class SeeingIsBelieving
 
     private
 
-    def results
-      @results ||= Hash.new do |hash, line_number|
-        hash[line_number] = Line.new
-      end
+    def results(line_number)
+      @results[line_number] ||= Line.new
     end
   end
 end

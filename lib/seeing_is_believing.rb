@@ -1,23 +1,33 @@
 require 'stringio'
+require "interprocess_attribute"
 
 require 'seeing_is_believing/result'
 require 'seeing_is_believing/expression_list'
 
 # might not work on windows b/c of assumptions about line ends
 class SeeingIsBelieving
+
+  extend InterProcessAttribute
+  interprocess_attribute :result
+
   def initialize(string_or_stream)
     @string = string_or_stream
     @stream = to_stream string_or_stream
-    @result = Result.new
+    self.result = Result.new
   end
 
   def call
     @memoized_result ||= begin
       program = ''
       program << expression_list.call until stream.eof?
-      $seeing_is_believing_current_result = @result # can we make this a threadlocal var on the class?
-      TOPLEVEL_BINDING.eval record_exceptions_in(program), 'program.rb', 1
-      @result
+
+      Process.wait fork {
+        $seeing_is_believing_current_result = result
+        TOPLEVEL_BINDING.eval record_exceptions_in(program), 'program.rb', 1
+        self.result = $seeing_is_believing_current_result
+      }
+
+      result
     end
   end
 
